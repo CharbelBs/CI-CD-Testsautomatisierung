@@ -1,0 +1,109 @@
+# First Stage: Build the JAR file
+FROM eclipse-temurin:17-jdk-jammy AS build-stage
+
+# Set working directory
+WORKDIR /build
+
+# Install necessary dependencies to run Gradle
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    gnupg \
+    unzip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+
+# Copy only necessary files for building the JAR
+COPY build.gradle /build
+COPY src /build/src
+
+# Install Gradle
+RUN wget --no-check-certificate https://services.gradle.org/distributions/gradle-8.12-bin.zip -O /tmp/gradle.zip && \
+    unzip /tmp/gradle.zip -d /opt/ && \
+    ln -s /opt/gradle-8.12/bin/gradle /usr/bin/gradle && \
+    rm /tmp/gradle.zip
+
+# Build the JAR file
+RUN gradle clean jar
+
+# Second Stage: Runtime Environment
+FROM eclipse-temurin:17-jdk-jammy
+
+# Define default user configuration
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+ARG USERNAME=insight
+
+RUN groupadd -g ${GROUP_ID} ${USERNAME} && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash ${USERNAME}
+
+# Install necessary dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    gnupg \
+    unzip \
+    xvfb \
+    libx11-xcb1 \
+    libxcb-dri3-0 \
+    libxcomposite1 \
+    libxrandr2 \
+    libasound2 \
+    libxdamage1 \
+    libgtk-3-0 \
+    libgbm1 \
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libatspi2.0-0 \
+    libxss1 \
+    fonts-liberation \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Chrome and ChromeDriver
+RUN CHROME_VERSION=131.0.6778.69 \
+    && wget -q -O /tmp/chrome-linux64.zip https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chrome-linux64.zip \
+    && unzip /tmp/chrome-linux64.zip -d /opt/ \
+    && ln -s /opt/chrome-linux64/chrome /usr/bin/google-chrome \
+    && rm /tmp/chrome-linux64.zip
+
+RUN CHROMEDRIVER_VERSION=131.0.6778.69 \
+    && wget -q -O /tmp/chromedriver-linux64.zip https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip \
+    && unzip /tmp/chromedriver-linux64.zip -d /tmp/ \
+    && mv /tmp/chromedriver-linux64/chromedriver /usr/bin/chromedriver \
+    && chmod +x /usr/bin/chromedriver \
+    && rm -rf /tmp/chromedriver-linux64.zip /tmp/chromedriver-linux64
+
+# Verify installation
+RUN ls -l /usr/bin/chromedriver \
+    && ls -l /usr/bin/google-chrome \
+    && /usr/bin/google-chrome --version \
+    && /usr/bin/chromedriver --version
+
+
+# Copy the Gradle installation from the build stage
+COPY --from=build-stage /opt/gradle-8.12 /opt/gradle-8.12
+
+# Create a symbolic link for Gradle with root permissions
+RUN ln -sf /opt/gradle-8.12/bin/gradle /usr/bin/gradle
+
+# Switch to the non-root user
+USER ${USERNAME}
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the JAR file from the build stage to app
+COPY --from=build-stage /build/libs/e2e-library-1.0.0.jar /app/libs/
+
+# Copy only necessary files to /app, preserving folder structures
+COPY build.gradle /app
+COPY src/test /app/src/test
+COPY testdata /app/testdata
+
+# Set the DISPLAY environment variable for xvfb
+ENV DISPLAY=:99
+ENV PATH="/usr/bin:${PATH}"
+
+# Set the environment variable to indicate Docker runtime
+ENV RUN_IN_DOCKER=true
+

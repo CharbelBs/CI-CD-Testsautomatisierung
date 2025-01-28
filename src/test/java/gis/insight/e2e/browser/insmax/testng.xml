@@ -1,0 +1,16 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Phase Tests Suite" parallel="none">
+    <!-- Phase 0 Tests -->
+    <test name="Phase 0 - Initialise">
+        <packages>
+            <package name="gis.insight.e2e.browser.insmax.tests_phasen.phase0_initialise.tests"/>
+        </packages>
+    </test>
+
+    <!-- Phase 1 Tests -->
+    <test name="Phase 1 - Automated">
+        <packages>
+            <package name="gis.insight.e2e.browser.insmax.tests_phasen.phase1_automated.tests"/>
+        </packages>
+    </test>
+</suite>

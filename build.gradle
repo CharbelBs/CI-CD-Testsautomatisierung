@@ -1,0 +1,109 @@
+plugins {
+    id 'java'
+}
+
+jar {
+    archiveBaseName.set('e2e-library') // Name of the JAR
+    archiveVersion.set('1.0.0')        // Version of the JAR
+    destinationDirectory.set(file("$projectDir/libs"))
+
+    // Include compiled classes and resources
+    from sourceSets.main.output
+}
+
+
+repositories {
+    mavenCentral()
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'org.slf4j:slf4j-api:2.0.16'
+        force 'org.apache.logging.log4j:log4j-core:2.17.2'
+        force 'org.apache.logging.log4j:log4j-api:2.17.2'
+        force 'org.slf4j:slf4j-log4j12:2.0.12'
+    }
+}
+
+
+dependencies {
+
+    // src main classes JAR-Datei
+    implementation files('libs/e2e-library-1.0.0.jar')
+
+    // Database Dependencies
+    implementation 'com.oracle.database.jdbc:ojdbc8:19.8.0.0'
+    implementation 'com.microsoft.sqlserver:mssql-jdbc:11.2.3.jre11'
+
+    // OpenNLP for Natural Language Processing
+    implementation 'org.apache.opennlp:opennlp-tools:1.9.3'
+
+    // Jackson for JSON Processing
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.0'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.0'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.15.0'
+
+    // Apache POI for Excel Handling
+    implementation 'org.apache.poi:poi:5.2.5'
+    implementation 'org.apache.poi:poi-ooxml:5.3.0'
+
+    // Logging
+    implementation 'org.slf4j:slf4j-api:2.0.16'
+    implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
+    implementation 'org.apache.logging.log4j:log4j-api:2.17.2'
+    implementation 'org.slf4j:slf4j-log4j12:2.0.12'
+
+
+    // Selenium for Web Automation
+    implementation 'org.seleniumhq.selenium:selenium-java:4.26.0'
+    implementation 'org.seleniumhq.selenium:selenium-edge-driver:4.26.0'
+    implementation 'org.seleniumhq.selenium:selenium-devtools-v130:4.26.0'
+
+    // JSON Parsing
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    // TestNG for Testing
+    implementation 'org.testng:testng:7.10.2'
+
+    // JNA for Native Access
+    implementation 'net.java.dev.jna:jna-platform:5.12.1'
+
+    // Netty for Networking
+    implementation 'io.netty:netty-all:4.1.115.Final'
+
+    // Guava for Utilities
+    implementation 'com.google.guava:guava:33.3.1-jre'
+
+    // Dotenv for Environment Variables
+    implementation 'io.github.cdimascio:dotenv-java:3.0.0'
+
+    // Appium Java Client
+    implementation 'io.appium:java-client:9.3.0'
+}
+
+test {
+    useTestNG {
+        suites 'testng.xml'
+    }
+
+    testLogging {
+        events "started", "passed", "failed"
+        showStandardStreams = true
+    }
+
+    beforeTest { descriptor ->
+        println "Running test: ${descriptor.className} > ${descriptor.name}"
+    }
+
+    afterTest { descriptor, result ->
+        println "Test ${descriptor.name} ${result.resultType}"
+    }
+}
+
+// Toolchain Configuration
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
